@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 打包产物(本地测试 zip 别提交进来)
+*.zip
+dist/
+
+# 本地测试输出
+/tmp/
+.daily-report-test/
+
+# IDE
+.vscode/
+.idea/

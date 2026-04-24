@@ -1,0 +1,59 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show tag
+        run: |
+          echo "Tag: ${GITHUB_REF_NAME}"
+
+      - name: Prepare package directory
+        run: |
+          # 复制所有需要打包的内容到 daily-report-skills/,作为解压后的顶层目录名
+          mkdir -p dist
+          cp -R . dist/daily-report-skills
+          # 剔除不该进发布包的东西
+          rm -rf dist/daily-report-skills/.git
+          rm -rf dist/daily-report-skills/.github
+          rm -rf dist/daily-report-skills/dist
+          find dist/daily-report-skills -name '.DS_Store' -delete
+          find dist/daily-report-skills -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+
+      - name: Inject version into install.sh
+        run: |
+          sed -i "s|<VERSION>|${GITHUB_REF_NAME}|g" dist/daily-report-skills/install.sh
+          head -5 dist/daily-report-skills/install.sh
+          grep -n 'BUILD_VERSION=' dist/daily-report-skills/install.sh
+
+      - name: Create zip
+        run: |
+          cd dist
+          zip -r daily-report-skills.zip daily-report-skills
+          ls -lh daily-report-skills.zip
+
+      - name: Copy standalone install.sh
+        run: |
+          # install.sh 作为"入口文件"单独也上传一份,方便 curl 直接拿
+          cp dist/daily-report-skills/install.sh dist/install.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/daily-report-skills.zip
+            dist/install.sh

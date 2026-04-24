@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{TITLE}}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px 14px 32px;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      color: #1f2937;
+      background: linear-gradient(180deg, #eef2ff 0%, #f8fafc 220px);
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ─── 第一层:日报标题(无卡片,融入页面) ─── */
+    .report-header {
+      padding: 8px 4px 20px;
+    }
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .mood-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 5px;
+      letter-spacing: 0.05em;
+    }
+    .mood-tag.strong { background: rgba(250,82,82,0.12); color: #fa5252; }
+    .mood-tag.weak { background: rgba(67,160,71,0.12); color: #43a047; }
+    .mood-tag.mixed { background: rgba(255,152,0,0.14); color: #ff9800; }
+    .mood-tag.flat { background: rgba(107,114,128,0.12); color: #6b7280; }
+    .header-date {
+      font-size: 12px;
+      color: rgba(0,0,0,0.3);
+      letter-spacing: 0.02em;
+    }
+    .header-divider {
+      height: 12px;
+      width: 1px;
+      background: rgba(0,0,0,0.12);
+    }
+    h1.report-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.3;
+      letter-spacing: -0.3px;
+      margin: 0 0 10px;
+      color: #111827;
+    }
+    .report-sub {
+      font-size: 14px;
+      color: rgba(0,0,0,0.5);
+      line-height: 1.65;
+      border-left: 3px solid rgba(36,112,235,0.3);
+      padding-left: 12px;
+    }
+
+    /* ─── 卡片式 Section ─── */
+    .section-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .section-bar {
+      width: 4px;
+      height: 20px;
+      border-radius: 2px;
+      background: #2470EB;
+    }
+    .section-bar.outlook {
+      background: #ff9800;
+    }
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #111827;
+    }
+    .section-meta {
+      margin-left: auto;
+      font-size: 12px;
+      color: rgba(0,0,0,0.3);
+    }
+
+    /* ─── 因果文字块(标签 + 文字) ─── */
+    .cause-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .cause-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .cause-tag {
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 100px;
+      white-space: nowrap;
+      letter-spacing: 0.02em;
+    }
+    .cause-tag.primary { background: rgba(36,112,235,0.12); color: #2470EB; }
+    .cause-tag.critical { background: rgba(250,82,82,0.12); color: #fa5252; }
+    .cause-tag.neutral { background: rgba(107,114,128,0.12); color: #6b7280; }
+    .cause-text {
+      font-size: 14px;
+      color: rgba(0,0,0,0.72);
+      line-height: 1.7;
+    }
+
+    /* ─── 涨跌关键词高亮 ─── */
+    .highlight-up { color: #fa5252; font-weight: 600; }
+    .highlight-down { color: #43a047; font-weight: 600; }
+
+    /* ─── 连接文字段落(自选总览用) ─── */
+    .connect-text {
+      font-size: 14px;
+      color: rgba(0,0,0,0.72);
+      line-height: 1.7;
+      margin-bottom: 14px;
+    }
+
+    /* ─── 单只分析卡片 ─── */
+    .stock-block {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border: 1.5px solid rgba(0,0,0,0.04);
+    }
+    .stock-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .stock-idx {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: rgba(36,112,235,0.12);
+      color: #2470EB;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .stock-name {
+      flex: 1;
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .stock-pct {
+      font-size: 17px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .stock-pnl {
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-left: 6px;
+    }
+    .stock-body {
+      font-size: 14px;
+      color: rgba(0,0,0,0.72);
+      line-height: 1.65;
+    }
+
+    /* ─── 接下来关注 ─── */
+    .outlook-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .outlook-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #f8f9fc;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .outlook-when {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 100px;
+      white-space: nowrap;
+      background: rgba(255,152,0,0.14);
+      color: #ff9800;
+      margin-top: 2px;
+    }
+    .outlook-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .outlook-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+    .outlook-desc {
+      font-size: 13px;
+      color: rgba(0,0,0,0.65);
+      line-height: 1.6;
+    }
+
+    /* ─── 热门新闻(section-bar 用品牌蓝,chip 按 tag 分色) ─── */
+    .section-bar.news {
+      background: #2470EB;
+    }
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .news-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #f8f9fc;
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+    .news-chip {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 100px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .news-chip.macro   { background: rgba(36,112,235,0.12); color: #2470EB; }
+    .news-chip.sector  { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+    .news-chip.company { background: rgba(20,184,166,0.12); color: #14b8a6; }
+    .news-chip.global  { background: rgba(255,152,0,0.14); color: #ff9800; }
+    .news-body {
+      flex: 1;
+      min-width: 0;
+    }
+    .news-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #1f2937;
+      line-height: 1.45;
+      margin-bottom: 6px;
+    }
+    .news-desc {
+      font-size: 13px;
+      color: rgba(0,0,0,0.65);
+      line-height: 1.6;
+    }
+    .news-sources {
+      margin-top: 6px;
+      font-size: 11px;
+      color: rgba(0,0,0,0.35);
+      font-weight: 500;
+    }
+
+    /* ─── 免责声明 ─── */
+    .disclaimer {
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      font-size: 11px;
+      color: rgba(0,0,0,0.3);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="report-header">
+    <div class="header-top">
+      <span class="mood-tag {{MOOD_CLASS}}">{{MOOD_LABEL}}</span>
+      <span class="header-divider"></span>
+      <span class="header-date">{{DATE_LABEL}}</span>
+    </div>
+    <h1 class="report-title">{{TITLE}}</h1>
+    {{SUBTITLE_BLOCK}}
+  </header>
+
+  <section class="section-card">
+    <div class="section-head">
+      <span class="section-bar"></span>
+      <span class="section-title">市场行情分析</span>
+      <span class="section-meta">{{MARKET_META}}</span>
+    </div>
+    {{MARKET_SECTION}}
+  </section>
+
+  {{HOT_NEWS_SECTION}}
+
+  {{WATCHLIST_OR_POSITION_SECTION}}
+
+  <section class="section-card">
+    <div class="section-head">
+      <span class="section-bar outlook"></span>
+      <span class="section-title">接下来关注</span>
+    </div>
+    <div class="outlook-list">
+      {{OUTLOOK_ITEMS}}
+    </div>
+  </section>
+
+  <footer class="disclaimer">
+    数据来源:akshare / yfinance / WebSearch。内容由 AI 分析,仅供参考,不构成投资建议。
+  </footer>
+
+</body>
+</html>
+
+<!--
+  ============================================================
+  占位符填充说明
+  ============================================================
+
+  顶部区域:
+  - {{MOOD_CLASS}}      → strong / weak / mixed / flat
+  - {{MOOD_LABEL}}      → 偏强 / 偏弱 / 分化 / 平稳(或用"积极""谨慎"等)
+  - {{DATE_LABEL}}      → "2026年4月22日 · 已收盘" / "2026年4月22日 · 盘前" / "盘中"
+  - {{TITLE}}           → 一句话标题(15 字内)
+  - {{SUBTITLE_BLOCK}}  → L2/L3 时用 <div class="report-sub">...</div> 包裹副标题文字
+                        → L1 时留空字符串
+
+  市场行情段:
+  - {{MARKET_META}}     → "15:30 收盘" / "盘中 11:15" / "盘前 08:45"
+  - {{MARKET_SECTION}}  → market_grid 图表 + 因果文字块
+                        格式:
+                        [market_grid HTML 片段]
+                        <div class="cause-list">
+                          <div class="cause-item">
+                            <span class="cause-tag primary">核心原因</span>
+                            <div class="cause-text">...</div>
+                          </div>
+                          <div class="cause-item">
+                            <span class="cause-tag critical">具体催化</span>
+                            <div class="cause-text">...</div>
+                          </div>
+                        </div>
+                        涨跌关键词用 <span class="highlight-up">...</span> / <span class="highlight-down">...</span>
+
+  自选/持仓段:
+  - {{WATCHLIST_OR_POSITION_SECTION}} → 完整 <section class="section-card">...</section> 块
+    L1:整个留空字符串
+
+    L2 格式:
+      <section class="section-card">
+        <div class="section-head">
+          <span class="section-bar"></span>
+          <span class="section-title">你的自选今天</span>
+        </div>
+        <div class="connect-text">[连接市场和自选的叙述]</div>
+        [watchlist_bars HTML 片段]
+      </section>
+      <div>
+        [逐只 stock-block 多个]
+      </div>
+
+    L3 格式(在 L2 基础上):
+      <section class="section-card">
+        <div class="section-head">
+          <span class="section-bar"></span>
+          <span class="section-title">你的持仓今天</span>
+        </div>
+        <div class="connect-text">今天你的总盈亏约 <strong style="color:#fa5252">+¥86</strong>...</div>
+        [pnl_waterfall HTML 片段]
+        [position_pie HTML 片段]
+      </section>
+      <div>
+        [逐只 stock-block 多个,h3 带盈亏金额]
+      </div>
+
+  单只 stock-block(L2/L3 共用,L3 多一个 PNL 节):
+    <div class="stock-block">
+      <div class="stock-head">
+        <span class="stock-idx">01</span>
+        <span class="stock-name">华夏芯片ETF</span>
+        <span class="stock-pct" style="color:#fa5252">+2.18%</span>
+        <span class="stock-pnl" style="color:#fa5252">+¥392</span>  ← 仅 L3 需要
+      </div>
+      <div class="stock-body">
+        [归因 + 定量锚点 + 一句话评估,合成一段]
+      </div>
+    </div>
+
+  接下来关注:
+  - {{OUTLOOK_ITEMS}}   → 多个 outlook-item:
+      <div class="outlook-item">
+        <span class="outlook-when">本周</span>
+        <div class="outlook-body">
+          <div class="outlook-title">美股科技财报季</div>
+          <div class="outlook-desc">[描述 + 关联持仓]</div>
+        </div>
+      </div>
+
+  ============================================================
+-->
