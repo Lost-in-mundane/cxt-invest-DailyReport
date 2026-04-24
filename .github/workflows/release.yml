@@ -21,15 +21,17 @@ jobs:
 
       - name: Prepare package directory
         run: |
-          # 复制所有需要打包的内容到 daily-report-skills/,作为解压后的顶层目录名
-          mkdir -p dist
-          cp -R . dist/daily-report-skills
-          # 剔除不该进发布包的东西
-          rm -rf dist/daily-report-skills/.git
-          rm -rf dist/daily-report-skills/.github
-          rm -rf dist/daily-report-skills/dist
-          find dist/daily-report-skills -name '.DS_Store' -delete
-          find dist/daily-report-skills -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null || true
+          # 用 rsync 排除不该进发布包的内容,避免 cp -R . 把 dist/ 递归进自身
+          mkdir -p dist/daily-report-skills
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='dist' \
+            --exclude='.DS_Store' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            ./ dist/daily-report-skills/
+          ls -la dist/daily-report-skills/
 
       - name: Inject version into install.sh
         run: |
