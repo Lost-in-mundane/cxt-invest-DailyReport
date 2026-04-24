@@ -569,14 +569,51 @@ def html_to_png(
         try:
             subprocess.run(cmd, capture_output=True, timeout=timeout)
             if png_path.exists() and png_path.stat().st_size > 1024:
+                # 写入 DPI 元数据:scale=2 时标成 144 DPI,预览/微信/iMessage 会按物理尺寸显示,
+                # 既保留 retina 清晰度又不在电脑上撑爆屏。
+                try:
+                    _inject_png_dpi(png_path, dpi=72 * scale)
+                except Exception:
+                    pass  # DPI 写失败不影响截图本身
                 suffix = f"{real_height}px" if real_height else "fallback 3600px"
-                return True, f"{chrome} ({headless_flag}, body={suffix})"
+                return True, f"{chrome} ({headless_flag}, body={suffix}, dpi={72*scale})"
         except subprocess.TimeoutExpired:
             return False, f"Chrome 截图超时(> {timeout}s);HTML 仍然生成"
         except Exception:
             continue
 
     return False, "Chrome 截图失败(两种 headless 模式都未生成有效 PNG);HTML 仍然生成"
+
+
+def _inject_png_dpi(png_path: Path, dpi: int) -> None:
+    """给 PNG 写一个 pHYs chunk(显示 DPI 元数据)。
+
+    PNG 格式:8 字节签名 + 多个 chunk;每个 chunk 是 [4B length][4B type][data][4B CRC]。
+    IHDR 永远第一块,我们把 pHYs 插在它后面。1 DPI ≈ 39.3701 pixels per meter。
+    """
+    import struct, zlib
+    ppm = round(dpi / 0.0254)  # pixels per meter
+    data = png_path.read_bytes()
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return
+    # IHDR 固定在 signature 之后,data=13 字节,加 12 字节 overhead = 25 字节
+    ihdr_end = 8 + 25
+    # pHYs data: pX(4) pY(4) unit(1=meters)
+    phys_data = struct.pack(">IIB", ppm, ppm, 1)
+    phys_chunk = (
+        struct.pack(">I", len(phys_data)) +
+        b"pHYs" + phys_data +
+        struct.pack(">I", zlib.crc32(b"pHYs" + phys_data))
+    )
+    # 如果已经有 pHYs(比如重跑),直接替换
+    existing = data.find(b"pHYs", 8, ihdr_end + 50)
+    if existing != -1:
+        # pHYs chunk 起点 = existing - 4 (length 字段);整块 21 字节
+        start = existing - 4
+        new_data = data[:start] + phys_chunk + data[start + 21:]
+    else:
+        new_data = data[:ihdr_end] + phys_chunk + data[ihdr_end:]
+    png_path.write_bytes(new_data)
 
 
 # ---------- CLI ----------
